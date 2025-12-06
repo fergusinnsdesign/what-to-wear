@@ -1,65 +1,178 @@
-import Image from "next/image";
+"use client";
+
+import { useState } from "react";
 
 export default function Home() {
+  const [city, setCity] = useState("London");            // Search field
+  const [currentCity, setCurrentCity] = useState("London"); // Label shown on left
+
+  const [weather, setWeather] = useState<any>(null);
+  const [summary, setSummary] = useState("");
+  const [videoSrc, setVideoSrc] = useState("");
+
+  // Fade-in states
+  const [textVisible, setTextVisible] = useState(false);
+  const [videoVisible, setVideoVisible] = useState(false);
+
+  async function fetchWeather() {
+    if (!city.trim()) return;
+
+    setWeather(null);
+    setSummary("");
+    setVideoVisible(false);
+
+    // Save searched city as the display label
+    setCurrentCity(city);
+
+    const res = await fetch(`/api/weather?city=${city}`);
+    const data = await res.json();
+    if (data.error) return;
+
+    setWeather(data);
+
+    // Fetch Gemini summary
+    const summaryRes = await fetch(`/api/summary`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+
+    const summaryData = await summaryRes.json();
+    setSummary(summaryData.sentence || "");
+
+    setTimeout(() => setTextVisible(true), 150);
+
+    const chosenVideo = pickVideo(data.temp, data.condition);
+    setVideoSrc(`/avatars/${chosenVideo}`);
+
+    // Reset ONLY the search box — not the label
+    setTimeout(() => setCity(""), 1000);
+  }
+
+  function pickVideo(temp: number, condition: string) {
+    if (condition.includes("rain")) return "08-raining.mp4";
+    if (temp >= 28) return "01-hot.mp4";
+    if (temp >= 22) return "02-warm.mp4";
+    if (temp >= 16) return "03-mild.mp4";
+    if (temp >= 12) return "04-cool.mp4";
+    if (temp >= 7) return "05-cold.mp4";
+    if (temp >= 2) return "06-frosty.mp4";
+    return "07-freezing.mp4";
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div
+      style={{
+        width: "100%",
+        minHeight: "100vh",
+        fontFamily:
+          "-apple-system, BlinkMacSystemFont, Helvetica Neue, SF Pro Display, Arial, sans-serif",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        paddingTop: "40px",
+      }}
+    >
+      {/* HEADER ROW */}
+      <div
+        style={{
+          width: "500px",
+          maxWidth: "90%",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "40px",
+        }}
+      >
+        {/* CITY LABEL */}
+        <div
+          style={{
+            fontSize: "18px",
+            fontWeight: 500,
+            opacity: 0.6,
+          }}
+        >
+          {currentCity}
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+
+        {/* SEARCH INPUT */}
+        <div style={{ display: "flex", gap: "10px" }}>
+          <input
+            value={city}
+            onChange={(e) => setCity(e.target.value)}
+            placeholder="Search for location"
+            style={{
+              padding: "14px 22px",
+              width: "200px",
+              borderRadius: "24px",
+              border: "1.5px solid #e6e6e6",
+              fontSize: "15px",
+            }}
+          />
+          <button
+            onClick={fetchWeather}
+            style={{
+              padding: "14px 26px",
+              background: "black",
+              borderRadius: "24px",
+              color: "white",
+              fontWeight: 600,
+              fontSize: "15px",
+            }}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            Go
+          </button>
         </div>
-      </main>
+      </div>
+
+      {/* SUMMARY + VIDEO */}
+      <div
+        style={{
+          width: "500px",
+          maxWidth: "90%",
+          textAlign: "left",
+        }}
+      >
+        {/* FADE-IN SUMMARY */}
+        <div
+          style={{
+            opacity: textVisible ? 1 : 0,
+            transition: "opacity 0.8s ease",
+          }}
+        >
+          {summary && (
+            <p
+              style={{
+                fontSize: "28px",
+                lineHeight: "1.35",
+                fontWeight: 600,
+                marginBottom: "18px",
+              }}
+            >
+              {summary}
+            </p>
+          )}
+        </div>
+
+        {/* FADE-IN VIDEO */}
+        {videoSrc && (
+          <video
+            key={videoSrc}
+            src={videoSrc}
+            autoPlay
+            loop
+            muted
+            playsInline
+            onLoadedData={() => setVideoVisible(true)}
+            style={{
+              width: "100%",
+              marginTop: "10px",
+              opacity: videoVisible ? 1 : 0,
+              transition: "opacity 1s ease",
+              background: "transparent",
+            }}
+          />
+        )}
+      </div>
     </div>
   );
 }
